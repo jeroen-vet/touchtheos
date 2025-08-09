@@ -10,7 +10,7 @@
     ],
     'assets': {
         'web.assets_frontend': [
-            '/touchtheos_custom/static/src/js/custom_donation.js',
+            '/touchtheos/static/src/js/custom_donation.js',
         ],
     },
     'installable': True,
