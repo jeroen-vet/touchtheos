@@ -4,28 +4,25 @@
             <div class="donation-options">
                 <h3>Select Donation Amount</h3>
                 <label>
-                    <input type="radio" name="donation_type" value="100" checked="checked" /> 100 EUR
+                    <input type="radio" name="donation_amount" value="100" checked="checked" /> 100 EUR
                 </label>
                 <label>
-                    <input type="radio" name="donation_type" value="200" /> 200 EUR
+                    <input type="radio" name="donation_amount" value="200" /> 200 EUR
                 </label>
                 <label>
-                    <input type="radio" name="donation_type" value="300" /> 300 EUR
+                    <input type="radio" name="donation_amount" value="300" /> 300 EUR
                 </label>
                 <label>
-                    <input type="radio" name="donation_type" value="400" /> 400 EUR
+                    <input type="radio" name="donation_amount" value="400" /> 400 EUR
                 </label>
                 <label>
-                    <input type="radio" name="donation_type" value="500" /> 500 EUR
+                    <input type="radio" name="donation_amount" value="500" /> 500 EUR
                 </label>                
                 <label>
-                    <input type="radio" name="donation_type" value="custom" /> Custom Amount
+                    <input type="radio" name="donation_amount" value="custom" /> Custom Amount
                 </label>
                 <input type="number" id="custom_amount" name="custom_amount" placeholder="Enter amount" style="display: none;" min="1" step="0.01" />
-            </div>
-            <div>
-                <input type="number" id="custom_amount" style="display: none;" />
-            </div>         
+            </div>        
         </xpath>
     </template>
 </odoo>
