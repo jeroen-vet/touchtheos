@@ -1,57 +1,70 @@
-odoo.define('touchtheos.custom_donation', function (require) {
-    'use strict';
-    console.log('Touchtheos JS loaded! 🌊');  // Debug: Confirms module loaded
+console.log("Touchtheos JS loaded! 🌊");  // Confirm the file is included
 
-    var publicWidget = require('web.public.widget');
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOM fully loaded. Initializing donation logic.");
 
-    publicWidget.registry.CustomDonation = publicWidget.Widget.extend({
-        selector: '.oe_product',  // Targets product detail pages
-        start: function () {
-            console.log('Widget started! Ready for donations.');  // Debug
-            this._super.apply(this, arguments);
-            // Initial hide of custom amount
-            $('#custom_amount').hide();
-        },
-        events: {
-            'change input[name="donation_type"]': '_onChangeDonationType',
-            'input #custom_amount': '_onChangeAmount',  // Use 'input' for real-time updates
-        },
-        _onChangeDonationType: function (ev) {
+    // Selectors (adjust if your page structure differs)
+    const donationOptions = document.querySelector('.donation-options');
+    const customAmountInput = document.querySelector('#custom_amount');
+    const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
+    const priceElement = document.querySelector('.oe_product .oe_currency_value');  // More specific: Within product container
+
+    if (!donationOptions || !customAmountInput || radioInputs.length === 0) {
+        console.error("Required elements not found! Check XML injection and selectors.");
+        return;  // Exit if elements are missing
+    }
+    if (!priceElement) {
+        console.warn("Price element not found! Selector: .oe_product .oe_currency_value");
+    }
+
+    // Function to toggle custom field visibility
+    function toggleCustomField() {
+        const selectedValue = document.querySelector('input[name="donation_amount"]:checked').value;
+        customAmountInput.style.display = (selectedValue === 'custom') ? 'block' : 'none';
+        if (selectedValue === 'custom') {
+            customAmountInput.focus();
+        }
+        console.log("Toggled custom field. Visible:", selectedValue === 'custom');
+    }
+
+    // Function to update price
+    function updatePrice(amount) {
+        if (priceElement) {
+            priceElement.textContent = amount.toFixed(2);
+            console.log("Price updated to:", amount);
+        } else {
+            console.warn("No price element to update!");
+        }
+    }
+
+    // Event listeners for radio changes
+    radioInputs.forEach(radio => {
+        radio.addEventListener('change', function () {
+            const amount = this.value;
+            console.log("Selected amount:", amount);
             try {
-                var selectedValue = $(ev.currentTarget).val();
-                console.log('Selected donation type:', selectedValue);  // Debug
-
-                var customInput = $('#custom_amount');
-                if (selectedValue === 'custom') {
-                    customInput.show().focus();
-                } else {
-                    customInput.hide().val('');
-                    this._updatePrice(parseFloat(selectedValue) || 0);
+                if (amount !== 'custom') {
+                    updatePrice(parseFloat(amount));
                 }
-            } catch (e) {
-                console.error('Error in _onChangeDonationType:', e);
+                toggleCustomField();
+            } catch (error) {
+                console.error("Error handling radio change:", error);
             }
-        },
-        _onChangeAmount: function (ev) {
-            try {
-                var amount = parseFloat($(ev.currentTarget).val()) || 0;
-                console.log('Custom amount entered:', amount);  // Debug
-                this._updatePrice(amount);
-            } catch (e) {
-                console.error('Error in _onChangeAmount:', e);
-            }
-        },
-        _updatePrice: function (amount) {
-            var priceDisplay = $('.oe_currency_value');
-            if (priceDisplay.length) {
-                priceDisplay.text(amount.toFixed(2));
-                console.log('Price updated to:', amount.toFixed(2));  // Debug
-            } else {
-                console.warn('Price display element not found!');  // Debug if selector issue
-            }
-            // Optional: Update hidden form field for cart if needed, e.g., $('input[name="amount"]').val(amount);
-        },
+        });
     });
 
-    return publicWidget.registry.CustomDonation;
+    // Event listener for custom amount input
+    customAmountInput.addEventListener('input', function () {
+        const customAmount = parseFloat(this.value) || 0;
+        console.log("Custom amount updated:", customAmount);
+        try {
+            updatePrice(customAmount);
+        } catch (error) {
+            console.error("Error handling custom input:", error);
+        }
+    });
+
+    // Initial setup (e.g., hide custom field if not selected by default)
+    toggleCustomField();
+    console.log("Donation logic initialized! Ready for interactions.");
 });
