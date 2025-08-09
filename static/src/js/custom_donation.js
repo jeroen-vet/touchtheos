@@ -1,70 +1,71 @@
-console.log("Touchtheos JS loaded! 🌊");  // Confirm the file is included
+console.log("Touchtheos JS loaded! 🌊");
 
-document.addEventListener('DOMContentLoaded', function () {
-    console.log("DOM fully loaded. Initializing donation logic.");
+function initializeDonationLogic() {
+    console.log("Attempting to initialize donation logic...");
 
-    // Selectors (adjust if your page structure differs)
+    // Selectors (adjust these if inspection shows different ones)
     const donationOptions = document.querySelector('.donation-options');
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
-    const priceElement = document.querySelector('.oe_product .oe_currency_value');  // More specific: Within product container
+    const priceElement = document.querySelector('.oe_product .oe_currency_value');  // Common Odoo price selector; adjust based on inspection
 
-    if (!donationOptions || !customAmountInput || radioInputs.length === 0) {
-        console.error("Required elements not found! Check XML injection and selectors.");
-        return;  // Exit if elements are missing
-    }
-    if (!priceElement) {
-        console.warn("Price element not found! Selector: .oe_product .oe_currency_value");
+    // Debugging logs
+    console.log("Found donation options:", !!donationOptions);
+    console.log("Found custom input:", !!customAmountInput, "(Value:", customAmountInput ? customAmountInput.value : "N/A)");
+    console.log("Found radio inputs:", radioInputs.length);
+    radioInputs.forEach((radio, index) => console.log(`Radio ${index}: name=${radio.name}, value=${radio.value}, checked=${radio.checked}`));
+    console.log("Found price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)");
+
+    if (!donationOptions || !customAmountInput || radioInputs.length === 0 || !priceElement) {
+        console.warn("Some elements not found yet. Will retry...");
+        return false;  // Not ready; retry later
     }
 
-    // Function to toggle custom field visibility
+    // Toggle function
     function toggleCustomField() {
-        const selectedValue = document.querySelector('input[name="donation_amount"]:checked').value;
+        const selectedValue = document.querySelector('input[name="donation_amount"]:checked')?.value || 'none';
         customAmountInput.style.display = (selectedValue === 'custom') ? 'block' : 'none';
-        if (selectedValue === 'custom') {
-            customAmountInput.focus();
-        }
-        console.log("Toggled custom field. Visible:", selectedValue === 'custom');
+        if (selectedValue === 'custom') customAmountInput.focus();
+        console.log("Toggled custom field. Visible:", selectedValue === 'custom', "(Selected:", selectedValue, ")");
     }
 
-    // Function to update price
+    // Update price function
     function updatePrice(amount) {
-        if (priceElement) {
-            priceElement.textContent = amount.toFixed(2);
-            console.log("Price updated to:", amount);
-        } else {
-            console.warn("No price element to update!");
-        }
+        priceElement.textContent = amount.toFixed(2);
+        console.log("Price updated to:", amount);
     }
 
-    // Event listeners for radio changes
+    // Bind events
     radioInputs.forEach(radio => {
         radio.addEventListener('change', function () {
             const amount = this.value;
-            console.log("Selected amount:", amount);
-            try {
-                if (amount !== 'custom') {
-                    updatePrice(parseFloat(amount));
-                }
-                toggleCustomField();
-            } catch (error) {
-                console.error("Error handling radio change:", error);
+            console.log("Radio change detected! Amount:", amount);
+            if (amount !== 'custom') {
+                updatePrice(parseFloat(amount) || 0);
             }
+            toggleCustomField();
         });
     });
 
-    // Event listener for custom amount input
     customAmountInput.addEventListener('input', function () {
         const customAmount = parseFloat(this.value) || 0;
-        console.log("Custom amount updated:", customAmount);
-        try {
-            updatePrice(customAmount);
-        } catch (error) {
-            console.error("Error handling custom input:", error);
-        }
+        console.log("Custom input detected! Amount:", customAmount);
+        updatePrice(customAmount);
     });
 
-    // Initial setup (e.g., hide custom field if not selected by default)
+    // Initial setup
     toggleCustomField();
-    console.log("Donation logic initialized! Ready for interactions.");
+    console.log("Donation logic FULLY initialized! Events bound and ready.");
+    return true;  // Success
+}
+
+// Run on DOMContentLoaded, then retry every 500ms if needed
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOM fully loaded. Starting initialization.");
+    if (initializeDonationLogic()) return;  // Success on first try
+
+    // Retry mechanism for dynamic content
+    const retryInterval = setInterval(() => {
+        if (initializeDonationLogic()) clearInterval(retryInterval);
+    }, 500);
 });
