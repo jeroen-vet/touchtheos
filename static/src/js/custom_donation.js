@@ -43,7 +43,7 @@ function initializeDonationLogic() {
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
     let currentProductId = productIdInput ? parseInt(productIdInput.value) : getProductIdFromUrl() || 3;  // Use URL parse or default to 3
 
-    // Debugging logs
+    // Debugging logs (unchanged)
     console.log("URL-based product ID parse:", getProductIdFromUrl(), "(Full URL:", window.location.pathname, ")");
     console.log("Found donation options wrapper:", !!donationOptions);
     console.log("Found custom input:", !!customAmountInput, "(ID: #custom_amount)");
@@ -66,7 +66,7 @@ function initializeDonationLogic() {
         console.warn("Invalid product ID (" + currentProductId + "); cart add will fail. Inspect and update default in JS.");
     }
 
-    // Toggle custom field function
+    // Toggle custom field function (unchanged)
     function toggleCustomField() {
         const selectedValue = document.querySelector('input[name="donation_amount"]:checked')?.value || 'none';
         customAmountInput.style.display = (selectedValue === 'custom') ? 'block' : 'none';
@@ -74,7 +74,7 @@ function initializeDonationLogic() {
         console.log("Step 8: Toggled custom field. Visible:", selectedValue === 'custom', "(Selected:", selectedValue, ")");
     }
 
-    // Update price function (updates ALL visible texts; sync hidden if exists, triggers change)
+    // Update price function (unchanged)
     function updatePrice(amount) {
         const formattedAmount = amount.toFixed(2);
         priceElements.forEach(el => {
@@ -87,7 +87,7 @@ function initializeDonationLogic() {
         console.log("Step 9: Price updated to:", formattedAmount, `(Synced ${priceElements.length} visible elements; hidden if present; change event triggered)`);
     }
 
-    // Bind events to radios
+    // Bind events to radios (unchanged)
     radioInputs.forEach(radio => {
         radio.addEventListener('change', function () {
             const amount = this.value;
@@ -99,7 +99,7 @@ function initializeDonationLogic() {
         });
     });
 
-    // Bind event to custom input
+    // Bind event to custom input (unchanged)
     customAmountInput.addEventListener('input', function () {
         const customAmount = parseFloat(this.value) || 0;
         console.log("Step 11: Custom input change detected! Amount:", customAmount);
@@ -114,22 +114,26 @@ function initializeDonationLogic() {
         // Get current amount (from custom or selected radio)
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
+        const formattedAmount = amount.toFixed(2);
 
-        // Collect params for AJAX (simplified; added price_unit fallback)
+        // Enhanced params for better price override (added more fallbacks)
         const params = {
+            type: 'add',  // Explicitly specify add operation
             product_id: currentProductId,
             product_template_id: currentProductId,
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // Primary for our backend override
-            price_unit: amount.toFixed(2),   // Fallback
-            price: amount.toFixed(2),
-            amount: amount.toFixed(2),
-            set_price: amount.toFixed(2),
-            product_no_variant_attribute_values: [],  // Force no variant
-            express: 1
+            fixed_price: formattedAmount,  // Primary override
+            price_unit: formattedAmount,   // Fallback for sale order lines
+            price: formattedAmount,        // General fallback
+            amount: formattedAmount,       // Custom if backend reads it
+            set_price: formattedAmount,    // Another variant
+            product_no_variant_attribute_value_ids: [],  // Force no variants
+            product_custom_attribute_values: [],         // No custom attributes
+            no_variant_attribute_values: [],             // Additional force
+            express: 1                                   // Quick add
         };
 
-        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
+        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with enhanced params:", params);
 
         // Wrap in JSON-RPC structure (required for Odoo JSON routes)
         const rpcBody = {
@@ -151,11 +155,15 @@ function initializeDonationLogic() {
             body: JSON.stringify(rpcBody)
         })
         .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            if (!response.ok) {
+                console.error("Step 18: HTTP error! Status:", response.status, "Response:", response);
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
-            console.log("Step 18: AJAX response:", data);
+            console.log("Step 18: Full AJAX response:", data);
+
             if (data.error) {
                 // Handle Odoo JSON errors with deeper logging
                 console.error("Step 18: Odoo error details:", data.error);
@@ -168,12 +176,22 @@ function initializeDonationLogic() {
                 alert("Error from Odoo: " + (data.error.data?.message || data.error.message || "Unknown error") + ". Check console for full details.");
                 return;  // Stop here
             }
-            // Success: Use data.result (the actual cart data)
+
+            // Success: Inspect result for cart details
             const result = data.result || {};
-            // Inside .then(data => { ... })
             console.log("Step 18: Result data:", result);
 
-            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${amount} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
+            // Check if the price was actually applied (look for cart line info)
+            const cartLines = result.lines || result.cart_products || [];
+            const addedLine = cartLines.find(line => line.product_id === currentProductId);
+            const serverPrice = addedLine ? addedLine.price || addedLine.price_unit || 0 : 0;
+            console.log("Step 18: Server-reported price for added line:", serverPrice);
+
+            if (parseFloat(serverPrice) !== parseFloat(formattedAmount)) {
+                console.warn("Step 18: Warning - Server overrode price! Sent:", formattedAmount, "but server used:", serverPrice, ". Backend config may need adjustment (e.g., product list_price=0, no variants).");
+            }
+
+            const successMessage = `Added to cart successfully! Price sent: ${formattedAmount} (Server used: ${serverPrice}). If not matching, check backend. Redirecting to cart...`;
             console.log("Step 18: Success message (also alerting):", successMessage);
             alert(successMessage);
 
@@ -182,11 +200,25 @@ function initializeDonationLogic() {
         })
         .catch(error => {
             console.error("Step 18: AJAX failed:", error);
-            alert("Error adding to cart: " + error.message);
+            alert("Error adding to cart: " + error.message + ". Falling back to form submission...");
+
+            // Fallback: Simulate form submission if AJAX fails
+            if (cartForm) {
+                // Dynamically add hidden inputs to the form
+                const form = cartForm;
+                form.innerHTML += `<input type="hidden" name="product_id" value="${currentProductId}">`;
+                form.innerHTML += `<input type="hidden" name="add_qty" value="1">`;
+                form.innerHTML += `<input type="hidden" name="fixed_price" value="${formattedAmount}">`;  // Try override
+                form.innerHTML += `<input type="hidden" name="price_unit" value="${formattedAmount}">`;
+                form.submit();  // Submit the form
+                console.log("Step 18 fallback: Submitted hidden form with params.");
+            } else {
+                console.error("No cart form found for fallback.");
+            }
         });
     });
 
-    // Initial setup
+    // Initial setup (unchanged)
     toggleCustomField();
     const initialAmount = document.querySelector('input[name="donation_amount"]:checked')?.value;
     if (initialAmount && initialAmount !== 'custom') {
@@ -198,7 +230,7 @@ function initializeDonationLogic() {
     return true;  // Success
 }
 
-// Run the logic when ready, with retries if needed—but only on product pages
+// Run the logic when ready, with retries if needed—but only on product pages (unchanged)
 ready(function() {
     // Updated check: Run on /shop/ pages that aren't cart or categories
     const path = window.location.pathname;
