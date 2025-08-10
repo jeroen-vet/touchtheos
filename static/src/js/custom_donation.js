@@ -34,7 +34,7 @@ function initializeDonationLogic() {
     const productIdInput = document.querySelector('input[name="product_id"]') || 
                            document.querySelector('input[name="product_template_id"]') || 
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
-    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3 (common for donations; CHANGE TO YOUR ACTUAL ID from inspection/URL)
+    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL ID (e.g., from URL like /shop/product/donation-42 → 42)
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -47,7 +47,7 @@ function initializeDonationLogic() {
     console.log("Found hidden price input:", !!hiddenPriceInput, "(Current value:", hiddenPriceInput ? hiddenPriceInput.value : "N/A)", "(Selector used: 'input[name=\"price\"]')");
     console.log("Found cart form:", !!cartForm, "(Action:", cartForm ? cartForm.action : "N/A)");
     console.log("Found add to cart button:", !!addToCartButton, "(Text:", addToCartButton ? addToCartButton.textContent : "N/A)", "(Selector used: '#add_to_cart')");
-    console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If wrong, inspect and update default in JS (line ~70)!)");
+    console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If wrong, inspect URL or hidden input and update default in JS (line ~70)!)");
 
     // Condition: Require key elements
     if (radioInputs.length === 0 || !customAmountInput || !priceElement || !hiddenPriceInput || !addToCartButton) {
@@ -102,14 +102,15 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (refined: send both 'fixed_price' and 'price' for compatibility)
+        // Collect params for AJAX (added 'amount' as fallback; send product_template_id if relevant)
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
+            product_template_id: currentProductId,  // Fallback for some setups
             add_qty: 1,
             fixed_price: amount.toFixed(2),  // For variable-price/donations
-            price: amount.toFixed(2),  // Fallback if 'fixed_price' isn't recognized
-            product_custom_attribute_values: JSON.stringify([]),  // Add if needed, e.g., [{attribute_value_id: 1, custom_value: amount}]
-            // If error mentions 'product_template_id', add: product_template_id: currentProductId
+            price: amount.toFixed(2),  // Fallback
+            amount: amount.toFixed(2),  // Common for donation modules
+            product_custom_attribute_values: JSON.stringify([]),  // Add if needed
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
@@ -130,9 +131,15 @@ function initializeDonationLogic() {
         .then(data => {
             console.log("Step 18: AJAX response:", data);
             if (data.error) {
-                // Handle Odoo JSON errors
+                // Handle Odoo JSON errors with deeper logging
                 console.error("Step 18: Odoo error details:", data.error);
-                alert("Error from Odoo: " + (data.error.message || "Unknown") + ". Details in console.");
+                if (data.error.data) {
+                    console.error("Error type:", data.error.data.name || "Unknown");
+                    console.error("Error message:", data.error.data.message || "No message");
+                    console.error("Error debug/traceback:", data.error.data.debug || "No debug");
+                    console.error("Error arguments:", data.error.data.arguments || "None");
+                }
+                alert("Error from Odoo: " + (data.error.data?.message || data.error.message || "Unknown error") + ". Check console for full details.");
                 return;  // Stop here
             }
             if (data.quantity > 0 || (data.cart_quantity && data.cart_quantity > 0)) {
@@ -157,7 +164,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added JSON error handling)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Deeper error logging added)");
     return true;  // Success
 }
 
