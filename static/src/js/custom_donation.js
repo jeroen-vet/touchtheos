@@ -173,33 +173,7 @@ function initializeDonationLogic() {
             // Inside .then(data => { ... })
             console.log("Step 18: Result data:", result);
 
-            // Enhanced parsing: Extract added price from the new cart_lines HTML
-            let addedPrice = "Unknown";
-            try {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(result['website_sale.cart_lines'], 'text/html');
-                
-                // Find the last/newest product line (assuming it's the latest .o_cart_product)
-                const lines = doc.querySelectorAll('.o_cart_product');
-                if (lines.length > 0) {
-                    const newLine = lines[lines.length - 1];  // Last one is newest
-                    
-                    // Find price span within it (more flexible selector: look for monetary_field or similar)
-                    const priceElem = newLine.querySelector('.monetary_field, .oe_currency_value, [data-oe-field="price_unit"], span[data-oe-expression*="price"]');
-                    if (priceElem) {
-                        addedPrice = priceElem.textContent.trim().replace(/[^0-9.,]/g, '') || "Parsed but empty";
-                        console.log("Step 18b: Successfully parsed added price from HTML:", addedPrice);
-                    } else {
-                        console.log("Step 18b: No price element found in new line HTML. Full newLine HTML:", newLine.outerHTML);
-                    }
-                } else {
-                    console.log("Step 18b: No cart lines found in response HTML.");
-                }
-            } catch (e) {
-                console.log("Step 18b: Parsing error:", e);
-            }
-
-            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${addedPrice} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
+            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${params[price]} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
             console.log("Step 18: Success message (also alerting):", successMessage);
             alert(successMessage);
 
