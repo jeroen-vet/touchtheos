@@ -21,11 +21,11 @@ function ready(fn) {
 function initializeDonationLogic() {
     console.log("Step 6: Attempting to initialize donation logic...");
 
-    // Selectors - adjust these based on your HTML inspection if needed
-    const donationOptions = document.querySelector('.donation-options');  // Wrapper for radios, if it exists
+    // Selectors - adjust if needed based on inspection
+    const donationOptions = document.querySelector('.donation-options');  // Optional wrapper
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
-    const priceElement = document.querySelector('.oe_product .oe_currency_value');  // Common Odoo price selector; inspect to confirm
+    const priceElement = document.querySelector('.oe_currency_value');  // Updated based on your info (class='oe_currency_value')
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -34,10 +34,11 @@ function initializeDonationLogic() {
     radioInputs.forEach((radio, index) => {
         console.log(`Radio ${index}: value=${radio.value}, checked=${radio.checked}`);
     });
-    console.log("Found price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)");
+    console.log("Found price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)", "(Selector used: '.oe_currency_value')");  // Logs the selector for easy debugging
 
+    // More lenient condition: Only require radios, custom input, and price (wrapper is optional)
     if (radioInputs.length === 0 || !customAmountInput || !priceElement) {
-        console.warn("Step 7: Some elements not found yet. Will retry...");
+        console.warn("Step 7: Required elements not found yet (missing radios, custom input, or price). Will retry...");
         return false;  // Not ready; retry later
     }
 
@@ -74,8 +75,12 @@ function initializeDonationLogic() {
         updatePrice(customAmount);
     });
 
-    // Initial setup
+    // Initial setup (toggle and set initial price based on checked radio)
     toggleCustomField();
+    const initialAmount = document.querySelector('input[name="donation_amount"]:checked')?.value;
+    if (initialAmount && initialAmount !== 'custom') {
+        updatePrice(parseFloat(initialAmount) || 0);
+    }
     console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉");
     return true;  // Success
 }
@@ -95,7 +100,7 @@ ready(function() {
             clearInterval(retryInterval);
         } else if (retryCount >= maxRetries) {
             clearInterval(retryInterval);
-            console.error("Max retries reached. Elements not found. Check selectors/HTML.");
+            console.error("Max retries reached. Check the price selector—it's likely the issue.");
         }
     }, 500);
 });
