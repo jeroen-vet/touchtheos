@@ -26,7 +26,7 @@ function initializeDonationLogic() {
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
     const priceElement = document.querySelector('.oe_currency_value');  // Visible price display
-    const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input for cart
+    const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input (might be gone now)
     const cartForm = document.querySelector('form[action="/shop/cart/update"]');  // Cart form (if present)
     const addToCartButton = document.querySelector('#add_to_cart');  // Matches your HTML
 
@@ -34,7 +34,7 @@ function initializeDonationLogic() {
     const productIdInput = document.querySelector('input[name="product_id"]') || 
                            document.querySelector('input[name="product_template_id"]') || 
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
-    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL ID (e.g., from URL like /shop/product/donation-3 → 3)
+    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL (e.g., from URL)
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -49,8 +49,8 @@ function initializeDonationLogic() {
     console.log("Found add to cart button:", !!addToCartButton, "(Text:", addToCartButton ? addToCartButton.textContent : "N/A)", "(Selector used: '#add_to_cart')");
     console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If wrong, inspect URL or hidden input and update default in JS (line ~70)!)");
 
-    // Condition: Require key elements
-    if (radioInputs.length === 0 || !customAmountInput || !priceElement || !hiddenPriceInput || !addToCartButton) {
+    // Condition: Require key elements (relaxed hiddenPriceInput since it might be gone)
+    if (radioInputs.length === 0 || !customAmountInput || !priceElement || !addToCartButton) {
         console.warn("Step 7: Required elements not found yet. Will retry...");
         return false;  // Not ready; retry later
     }
@@ -66,12 +66,14 @@ function initializeDonationLogic() {
         console.log("Step 8: Toggled custom field. Visible:", selectedValue === 'custom', "(Selected:", selectedValue, ")");
     }
 
-    // Update price function (updates BOTH visible text and hidden input, triggers change event)
+    // Update price function (updates visible text; sync hidden if exists, triggers change)
     function updatePrice(amount) {
         priceElement.textContent = amount.toFixed(2);
-        if (hiddenPriceInput) hiddenPriceInput.value = amount.toFixed(2);  // Sync if exists
-        if (hiddenPriceInput) hiddenPriceInput.dispatchEvent(new Event('change'));
-        console.log("Step 9: Price updated to:", amount.toFixed(2), "(Visible and hidden input synced; change event triggered)");
+        if (hiddenPriceInput) {
+            hiddenPriceInput.value = amount.toFixed(2);  // Sync if exists
+            hiddenPriceInput.dispatchEvent(new Event('change'));
+        }
+        console.log("Step 9: Price updated to:", amount.toFixed(2), "(Visible synced; hidden if present; change event triggered)");
     }
 
     // Bind events to radios
@@ -96,24 +98,25 @@ function initializeDonationLogic() {
     // Bind click event to button for manual AJAX add-to-cart
     addToCartButton.addEventListener('click', function (event) {
         event.preventDefault();  // Prevent Odoo's default handler
-        console.log("Step 16: Add to Cart button clicked! Preventing default. Current hidden price:", hiddenPriceInput ? hiddenPriceInput.value : "N/A");
+        console.log("Step 16: Add to Cart button clicked! Preventing default. Current hidden price:", hiddenPriceInput ? hiddenPriceInput.value : "N/A (might be gone)");
 
         // Get current amount (from custom or selected radio)
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (simplified: no attributes/variants; focus on fixed_price for non-variant override)
+        // Collect params for AJAX (simplified; added price_unit fallback)
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
             product_template_id: currentProductId,  // Fallback
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // Main param for price override in simple products
-            set_price: amount.toFixed(2),    // Fallback (some Odoo versions/modules use this)
+            fixed_price: amount.toFixed(2),  // Main param for price override
+            set_price: amount.toFixed(2),    // Fallback
             price: amount.toFixed(2),        // Fallback
-            amount: amount.toFixed(2)        // Fallback for donation-specific
+            amount: amount.toFixed(2),       // Fallback
+            price_unit: amount.toFixed(2)    // Extra fallback (some versions use this for line price)
         };
 
-        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with simplified params (no attributes):", params);
+        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
 
         // Wrap in JSON-RPC structure (required for Odoo JSON routes)
         const rpcBody = {
@@ -155,9 +158,9 @@ function initializeDonationLogic() {
             // Success: Use data.result (the actual cart data)
             const result = data.result || {};
             console.log("Step 18: Result data:", result);
-            const addedPrice = result.amount || result.price || result.line_price || "Unknown";  // Try to extract the price Odoo used
+            const addedPrice = result.amount || result.price || result.line_price || result.price_unit || "Unknown";  // Expanded to extract price
             if (result.quantity > 0 || (result.cart_quantity && result.cart_quantity > 0)) {
-                alert(`Added to cart successfully! Price used by Odoo: ${addedPrice}. Redirecting to cart...`);
+                alert(`Added to cart successfully! Price used by Odoo: ${addedPrice} (if not your entered amount, check backend settings). Redirecting to cart...`);
                 window.location.href = '/shop/cart';  // Auto-redirect to confirm
             } else {
                 console.warn("Step 18: No items added (quantity: " + (result.quantity || 0) + "). Warning:", result.warning || "None");
@@ -178,13 +181,19 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Simplified for non-variant product; removed attribute params)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Now only runs on product pages; relaxed hidden price input; added price_unit fallback)");
     return true;  // Success
 }
 
-// Run the logic when ready, with retries if needed
+// Run the logic when ready, with retries if needed—but only on product pages
 ready(function() {
-    console.log("Step 6a: DOM is ready! Starting initialization.");
+    // Check if on product page (e.g., URL contains '/shop/product/') to avoid running on cart, etc.
+    if (!window.location.pathname.includes('/shop/product/')) {
+        console.log("Step 6a: Not on a product page (URL: " + window.location.pathname + "). Skipping initialization to avoid errors on cart/etc.");
+        return;  // Exit early
+    }
+    console.log("Step 6a: On product page! Starting initialization.");
+
     if (initializeDonationLogic()) return;  // Success on first try
 
     // Retry every 500ms if elements not found
@@ -197,11 +206,10 @@ ready(function() {
             clearInterval(retryInterval);
         } else if (retryCount >= maxRetries) {
             clearInterval(retryInterval);
-            console.error("Max retries reached. Check selectors.");
+            console.error("Max retries reached. Check selectors or if page HTML changed after removing attributes.");
         }
     }, 500);
 });
 
 // End of file
 console.log("Step 13: End of script reached. Success! (Outside ready)");
-
