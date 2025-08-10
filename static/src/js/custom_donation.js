@@ -25,7 +25,8 @@ function initializeDonationLogic() {
     const donationOptions = document.querySelector('.donation-options');  // Optional wrapper
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
-    const priceElement = document.querySelector('.oe_currency_value');  // Updated based on your info (class='oe_currency_value')
+    const priceElement = document.querySelector('.oe_currency_value');  // Visible price display
+    const hiddenPriceInput = document.querySelector('input[name="price"]');  // REPLACE WITH YOUR EXACT SELECTOR for the hidden input (e.g., 'input[name="amount"]' or 'input[name="donation_price"]')
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -34,11 +35,12 @@ function initializeDonationLogic() {
     radioInputs.forEach((radio, index) => {
         console.log(`Radio ${index}: value=${radio.value}, checked=${radio.checked}`);
     });
-    console.log("Found price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)", "(Selector used: '.oe_currency_value')");  // Logs the selector for easy debugging
+    console.log("Found visible price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)");
+    console.log("Found hidden price input:", !!hiddenPriceInput, "(Current value:", hiddenPriceInput ? hiddenPriceInput.value : "N/A)", "(Selector used: 'input[name=\"price\"]')");  // Update selector in log if changed
 
-    // More lenient condition: Only require radios, custom input, and price (wrapper is optional)
-    if (radioInputs.length === 0 || !customAmountInput || !priceElement) {
-        console.warn("Step 7: Required elements not found yet (missing radios, custom input, or price). Will retry...");
+    // Condition: Require radios, custom input, visible price, and hidden input
+    if (radioInputs.length === 0 || !customAmountInput || !priceElement || !hiddenPriceInput) {
+        console.warn("Step 7: Required elements not found yet (missing radios, custom input, price, or hidden input). Will retry...");
         return false;  // Not ready; retry later
     }
 
@@ -50,10 +52,11 @@ function initializeDonationLogic() {
         console.log("Step 8: Toggled custom field. Visible:", selectedValue === 'custom', "(Selected:", selectedValue, ")");
     }
 
-    // Update price function
+    // Update price function (updates BOTH visible text and hidden input)
     function updatePrice(amount) {
         priceElement.textContent = amount.toFixed(2);
-        console.log("Step 9: Price updated to:", amount.toFixed(2));
+        hiddenPriceInput.value = amount.toFixed(2);  // Sync to hidden input for cart submission
+        console.log("Step 9: Price updated to:", amount.toFixed(2), "(Visible and hidden input synced)");
     }
 
     // Bind events to radios
@@ -80,6 +83,8 @@ function initializeDonationLogic() {
     const initialAmount = document.querySelector('input[name="donation_amount"]:checked')?.value;
     if (initialAmount && initialAmount !== 'custom') {
         updatePrice(parseFloat(initialAmount) || 0);
+    } else if (initialAmount === 'custom') {
+        updatePrice(parseFloat(customAmountInput.value) || 0);
     }
     console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉");
     return true;  // Success
@@ -100,10 +105,11 @@ ready(function() {
             clearInterval(retryInterval);
         } else if (retryCount >= maxRetries) {
             clearInterval(retryInterval);
-            console.error("Max retries reached. Check the price selector—it's likely the issue.");
+            console.error("Max retries reached. Check selectors, especially the hidden price input.");
         }
     }, 500);
 });
 
 // End of file
 console.log("Step 13: End of script reached. Success! (Outside ready)");
+
