@@ -34,7 +34,7 @@ function initializeDonationLogic() {
     const productIdInput = document.querySelector('input[name="product_id"]') || 
                            document.querySelector('input[name="product_template_id"]') || 
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
-    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL ID (e.g., from URL like /shop/product/donation-42 → 42)
+    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL ID (e.g., from URL like /shop/product/donation-3 → 3)
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -102,25 +102,18 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (now sending price in product_custom_attribute_values for donation overrides)
-        const attributeValueId = 1;  // Default; CHANGE TO YOUR ACTUAL ATTRIBUTE ID (inspect for attribute_value_id or check Odoo backend)
-        const customAttributes = JSON.stringify([{
-            attribute_value_id: attributeValueId,
-            custom_value: amount.toFixed(2)  // Send the amount here
-        }]);
-
+        // Collect params for AJAX (simplified: no attributes/variants; focus on fixed_price for non-variant override)
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
             product_template_id: currentProductId,  // Fallback
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // Keep for compatibility
-            price: amount.toFixed(2),  // Fallback
-            amount: amount.toFixed(2),  // Fallback
-            product_custom_attribute_values: customAttributes,  // Main way to send variable donation amount
-            product_no_variant_attribute_value_ids: JSON.stringify([])  // If needed for no-variant products
+            fixed_price: amount.toFixed(2),  // Main param for price override in simple products
+            set_price: amount.toFixed(2),    // Fallback (some Odoo versions/modules use this)
+            price: amount.toFixed(2),        // Fallback
+            amount: amount.toFixed(2)        // Fallback for donation-specific
         };
 
-        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
+        console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with simplified params (no attributes):", params);
 
         // Wrap in JSON-RPC structure (required for Odoo JSON routes)
         const rpcBody = {
@@ -185,7 +178,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added custom attribute sending for price override)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Simplified for non-variant product; removed attribute params)");
     return true;  // Success
 }
 
