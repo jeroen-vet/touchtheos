@@ -34,7 +34,7 @@ function initializeDonationLogic() {
     const productIdInput = document.querySelector('input[name="product_id"]') || 
                            document.querySelector('input[name="product_template_id"]') || 
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
-    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 1;  // Default to 1; CHANGE TO YOUR ACTUAL PRODUCT ID (e.g., 3)
+    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3 (common for donations; CHANGE TO YOUR ACTUAL ID from inspection/URL)
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -47,7 +47,7 @@ function initializeDonationLogic() {
     console.log("Found hidden price input:", !!hiddenPriceInput, "(Current value:", hiddenPriceInput ? hiddenPriceInput.value : "N/A)", "(Selector used: 'input[name=\"price\"]')");
     console.log("Found cart form:", !!cartForm, "(Action:", cartForm ? cartForm.action : "N/A)");
     console.log("Found add to cart button:", !!addToCartButton, "(Text:", addToCartButton ? addToCartButton.textContent : "N/A)", "(Selector used: '#add_to_cart')");
-    console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If 0 or wrong, update default in JS!)");
+    console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If wrong, inspect and update default in JS (line ~70)!)");
 
     // Condition: Require key elements
     if (radioInputs.length === 0 || !customAmountInput || !priceElement || !hiddenPriceInput || !addToCartButton) {
@@ -102,13 +102,14 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (refined for donations: use 'fixed_price' and custom attributes)
+        // Collect params for AJAX (refined: send both 'fixed_price' and 'price' for compatibility)
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // Common for variable-price products like donations
-            product_custom_attribute_values: JSON.stringify([]),  // If custom attrs needed, e.g., [{attribute_value_id: X, custom_value: amount}]
-            // Alternative: If 'fixed_price' doesn't work, try 'price': amount or 'amount': amount
+            fixed_price: amount.toFixed(2),  // For variable-price/donations
+            price: amount.toFixed(2),  // Fallback if 'fixed_price' isn't recognized
+            product_custom_attribute_values: JSON.stringify([]),  // Add if needed, e.g., [{attribute_value_id: 1, custom_value: amount}]
+            // If error mentions 'product_template_id', add: product_template_id: currentProductId
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
@@ -128,6 +129,12 @@ function initializeDonationLogic() {
         })
         .then(data => {
             console.log("Step 18: AJAX response:", data);
+            if (data.error) {
+                // Handle Odoo JSON errors
+                console.error("Step 18: Odoo error details:", data.error);
+                alert("Error from Odoo: " + (data.error.message || "Unknown") + ". Details in console.");
+                return;  // Stop here
+            }
             if (data.quantity > 0 || (data.cart_quantity && data.cart_quantity > 0)) {
                 alert("Added to cart successfully! Redirecting to cart...");
                 window.location.href = '/shop/cart';  // Auto-redirect to confirm
@@ -150,7 +157,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Refined AJAX with response check)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added JSON error handling)");
     return true;  // Success
 }
 
@@ -176,5 +183,3 @@ ready(function() {
 
 // End of file
 console.log("Step 13: End of script reached. Success! (Outside ready)");
-
-
