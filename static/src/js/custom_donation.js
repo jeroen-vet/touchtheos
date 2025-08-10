@@ -117,14 +117,16 @@ function initializeDonationLogic() {
 
         // Collect params for AJAX (simplified; added price_unit fallback)
         const params = {
-            product_id: currentProductId,  // Key: Ensure this is correct!
-            product_template_id: currentProductId,  // Fallback
+            product_id: currentProductId,
+            product_template_id: currentProductId,
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // Main param for price override
-            set_price: amount.toFixed(2),    // Fallback
-            price: amount.toFixed(2),        // Fallback
-            amount: amount.toFixed(2),       // Fallback
-            price_unit: amount.toFixed(2)    // Extra fallback (some versions use this for line price)
+            fixed_price: amount.toFixed(2),  // Primary for our backend override
+            price_unit: amount.toFixed(2),   // Fallback
+            price: amount.toFixed(2),
+            amount: amount.toFixed(2),
+            set_price: amount.toFixed(2),
+            product_no_variant_attribute_values: [],  // Force no variant
+            express: 1
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
