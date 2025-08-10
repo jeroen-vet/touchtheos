@@ -115,8 +115,7 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
         const formattedAmount = amount.toFixed(2);
-
-        // Enhanced params for better price override (added more fallbacks)
+        // Enhanced params for better price override (unchanged)
         const params = {
             type: 'add',  // Explicitly specify add operation
             product_id: currentProductId,
@@ -132,6 +131,9 @@ function initializeDonationLogic() {
             no_variant_attribute_values: [],             // Additional force
             express: 1                                   // Quick add
         };
+
+
+        params.fixed_price = parseFloat(customAmountInput.value || 0);
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with enhanced params:", params);
 
@@ -181,17 +183,24 @@ function initializeDonationLogic() {
             const result = data.result || {};
             console.log("Step 18: Result data:", result);
 
-            // Check if the price was actually applied (look for cart line info)
-            const cartLines = result.lines || result.cart_products || [];
-            const addedLine = cartLines.find(line => line.product_id === currentProductId);
-            const serverPrice = addedLine ? addedLine.price || addedLine.price_unit || 0 : 0;
-            console.log("Step 18: Server-reported price for added line:", serverPrice);
+            // Improved: Parse the HTML snippet to find the price for our product ID
+            let serverPrice = 0;
+            if (result['website_sale.cart_lines']) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(result['website_sale.cart_lines'], 'text/html');
+                const productDiv = doc.querySelector(`[data-product-id="${currentProductId}"]`);
+                if (productDiv) {
+                    const priceEl = productDiv.querySelector('.oe_currency_value');  // Or adjust selector based on your theme
+                    serverPrice = priceEl ? parseFloat(priceEl.textContent.trim()) : 0;
+                }
+            }
+            console.log("Step 18: Server-reported price for added line (parsed from HTML):", serverPrice);
 
             if (parseFloat(serverPrice) !== parseFloat(formattedAmount)) {
-                console.warn("Step 18: Warning - Server overrode price! Sent:", formattedAmount, "but server used:", serverPrice, ". Backend config may need adjustment (e.g., product list_price=0, no variants).");
+                console.warn("Step 18: Warning - Server overrode price! Sent:", formattedAmount, "but server used:", serverPrice, ". If backend module is installed, verify product config (list_price=0, type=service, no variants).");
             }
 
-            const successMessage = `Added to cart successfully! Price sent: ${formattedAmount} (Server used: ${serverPrice}). If not matching, check backend. Redirecting to cart...`;
+            const successMessage = `Added to cart successfully! Price sent: ${formattedAmount} (Server used: ${serverPrice}). If not matching, check backend module installation. Redirecting to cart...`;
             console.log("Step 18: Success message (also alerting):", successMessage);
             alert(successMessage);
 
