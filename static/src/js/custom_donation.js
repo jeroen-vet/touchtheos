@@ -204,3 +204,4 @@ ready(function() {
 
 // End of file
 console.log("Step 13: End of script reached. Success! (Outside ready)");
+
