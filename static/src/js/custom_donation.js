@@ -102,15 +102,22 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX
+        // Collect params for AJAX (now sending price in product_custom_attribute_values for donation overrides)
+        const attributeValueId = 1;  // Default; CHANGE TO YOUR ACTUAL ATTRIBUTE ID (inspect for attribute_value_id or check Odoo backend)
+        const customAttributes = JSON.stringify([{
+            attribute_value_id: attributeValueId,
+            custom_value: amount.toFixed(2)  // Send the amount here
+        }]);
+
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
             product_template_id: currentProductId,  // Fallback
             add_qty: 1,
-            fixed_price: amount.toFixed(2),  // For variable-price/donations
+            fixed_price: amount.toFixed(2),  // Keep for compatibility
             price: amount.toFixed(2),  // Fallback
-            amount: amount.toFixed(2),  // Common for donations
-            product_custom_attribute_values: JSON.stringify([]),  // Add if needed
+            amount: amount.toFixed(2),  // Fallback
+            product_custom_attribute_values: customAttributes,  // Main way to send variable donation amount
+            product_no_variant_attribute_value_ids: JSON.stringify([])  // If needed for no-variant products
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
@@ -155,8 +162,9 @@ function initializeDonationLogic() {
             // Success: Use data.result (the actual cart data)
             const result = data.result || {};
             console.log("Step 18: Result data:", result);
+            const addedPrice = result.amount || result.price || result.line_price || "Unknown";  // Try to extract the price Odoo used
             if (result.quantity > 0 || (result.cart_quantity && result.cart_quantity > 0)) {
-                alert("Added to cart successfully! Redirecting to cart...");
+                alert(`Added to cart successfully! Price used by Odoo: ${addedPrice}. Redirecting to cart...`);
                 window.location.href = '/shop/cart';  // Auto-redirect to confirm
             } else {
                 console.warn("Step 18: No items added (quantity: " + (result.quantity || 0) + "). Warning:", result.warning || "None");
@@ -177,7 +185,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added JSON-RPC wrapper for params)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added custom attribute sending for price override)");
     return true;  // Success
 }
 
