@@ -7,7 +7,7 @@ function initializeDonationLogic() {
     const donationOptions = document.querySelector('.donation-options');
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
-    const priceElement = document.querySelector('.oe_product .oe_currency_value');  // Common Odoo price selector; adjust based on inspection
+    const priceElement = document.querySelector('.oe_currency_value');  // Common Odoo price selector; adjust based on inspection
 
     // Debugging logs
     console.log("Found donation options:", !!donationOptions);
