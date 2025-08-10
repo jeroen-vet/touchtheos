@@ -170,28 +170,41 @@ function initializeDonationLogic() {
             }
             // Success: Use data.result (the actual cart data)
             const result = data.result || {};
+            // Inside .then(data => { ... })
             console.log("Step 18: Result data:", result);
 
-            // Better extraction: Parse added line price from cart_lines HTML (look for monetary spans in the new line)
+            // Enhanced parsing: Extract added price from the new cart_lines HTML
             let addedPrice = "Unknown";
-            if (result['website_sale.cart_lines']) {
+            try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(result['website_sale.cart_lines'], 'text/html');
-                const monetarySpans = doc.querySelectorAll('.monetary_field .oe_currency_value');
-                if (monetarySpans.length > 0) {
-                    // Assume last one is the new line's price (or refine based on structure)
-                    addedPrice = monetarySpans[monetarySpans.length - 1].textContent.trim();
+                
+                // Find the last/newest product line (assuming it's the latest .o_cart_product)
+                const lines = doc.querySelectorAll('.o_cart_product');
+                if (lines.length > 0) {
+                    const newLine = lines[lines.length - 1];  // Last one is newest
+                    
+                    // Find price span within it (more flexible selector: look for monetary_field or similar)
+                    const priceElem = newLine.querySelector('.monetary_field, .oe_currency_value, [data-oe-field="price_unit"], span[data-oe-expression*="price"]');
+                    if (priceElem) {
+                        addedPrice = priceElem.textContent.trim().replace(/[^0-9.,]/g, '') || "Parsed but empty";
+                        console.log("Step 18b: Successfully parsed added price from HTML:", addedPrice);
+                    } else {
+                        console.log("Step 18b: No price element found in new line HTML. Full newLine HTML:", newLine.outerHTML);
+                    }
+                } else {
+                    console.log("Step 18b: No cart lines found in response HTML.");
                 }
+            } catch (e) {
+                console.log("Step 18b: Parsing error:", e);
             }
-            addedPrice = addedPrice || result.amount || result.price || result.line_price || result.price_unit || "Unknown";
 
-            if (result.quantity > 0 || (result.cart_quantity && result.cart_quantity > 0)) {
-                alert(`Added to cart successfully! Price used by Odoo for new line: ${addedPrice} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`);
-                window.location.href = '/shop/cart';  // Auto-redirect to confirm
-            } else {
-                console.warn("Step 18: No items added (quantity: " + (result.quantity || 0) + "). Warning:", result.warning || "None");
-                alert("Item not added to cart. Check console for details: " + (result.warning || "Unknown issue"));
-            }
+            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${addedPrice} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
+            console.log("Step 18: Success message (also alerting):", successMessage);
+            alert(successMessage);
+
+            // Redirect to cart
+            window.location.href = '/shop/cart';
         })
         .catch(error => {
             console.error("Step 18: AJAX failed:", error);
