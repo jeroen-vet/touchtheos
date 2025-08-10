@@ -173,7 +173,7 @@ function initializeDonationLogic() {
             // Inside .then(data => { ... })
             console.log("Step 18: Result data:", result);
 
-            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${params[price]} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
+            const successMessage = `Added to cart successfully! Price used by Odoo for new line: ${amount} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`;
             console.log("Step 18: Success message (also alerting):", successMessage);
             alert(successMessage);
 
