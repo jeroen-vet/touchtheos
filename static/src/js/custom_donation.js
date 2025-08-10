@@ -28,10 +28,13 @@ function initializeDonationLogic() {
     const priceElement = document.querySelector('.oe_currency_value');  // Visible price display
     const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input for cart
     const cartForm = document.querySelector('form[action="/shop/cart/update"]');  // Cart form (if present)
-    const addToCartButton = document.querySelector('#add_to_cart');  // Matches your HTML exactly
+    const addToCartButton = document.querySelector('#add_to_cart');  // Matches your HTML
 
-    // Additional selectors for cart params (adjust if names differ)
-    const productIdInput = document.querySelector('input[name="product_id"]') || document.querySelector('input[name="product_template_id"]');  // For the donation product ID
+    // Additional selectors for cart params (expanded for common Odoo names)
+    const productIdInput = document.querySelector('input[name="product_id"]') || 
+                           document.querySelector('input[name="product_template_id"]') || 
+                           document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
+    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 1;  // Default to 1; CHANGE TO YOUR ACTUAL PRODUCT ID (e.g., 3)
 
     // Debugging logs
     console.log("Found donation options wrapper:", !!donationOptions);
@@ -44,15 +47,15 @@ function initializeDonationLogic() {
     console.log("Found hidden price input:", !!hiddenPriceInput, "(Current value:", hiddenPriceInput ? hiddenPriceInput.value : "N/A)", "(Selector used: 'input[name=\"price\"]')");
     console.log("Found cart form:", !!cartForm, "(Action:", cartForm ? cartForm.action : "N/A)");
     console.log("Found add to cart button:", !!addToCartButton, "(Text:", addToCartButton ? addToCartButton.textContent : "N/A)", "(Selector used: '#add_to_cart')");
-    console.log("Found product ID input:", !!productIdInput, "(Value:", productIdInput ? productIdInput.value : "N/A)", "(Name:", productIdInput ? productIdInput.name : "N/A)");
+    console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If 0 or wrong, update default in JS!)");
 
-    // Condition: Require key elements (productIdInput is optional but warned if missing)
+    // Condition: Require key elements
     if (radioInputs.length === 0 || !customAmountInput || !priceElement || !hiddenPriceInput || !addToCartButton) {
-        console.warn("Step 7: Required elements not found yet (missing radios, custom input, price, hidden input, or button). Will retry...");
+        console.warn("Step 7: Required elements not found yet. Will retry...");
         return false;  // Not ready; retry later
     }
-    if (!productIdInput) {
-        console.warn("Product ID input not found; manual AJAX may fail. Check selector.");
+    if (currentProductId <= 0) {
+        console.warn("Invalid product ID (" + currentProductId + "); cart add will fail. Inspect and update default in JS.");
     }
 
     // Toggle custom field function
@@ -92,20 +95,20 @@ function initializeDonationLogic() {
 
     // Bind click event to button for manual AJAX add-to-cart
     addToCartButton.addEventListener('click', function (event) {
-        event.preventDefault();  // Prevent Odoo's default handler to bypass validation
-        console.log("Step 16: Add to Cart button clicked! Preventing default. Current hidden price:", hiddenPriceInput ? hiddenPriceInput.value : "N/A", "Button disabled?", this.classList.contains('disabled') || this.disabled);
+        event.preventDefault();  // Prevent Odoo's default handler
+        console.log("Step 16: Add to Cart button clicked! Preventing default. Current hidden price:", hiddenPriceInput ? hiddenPriceInput.value : "N/A");
 
         // Get current amount (from custom or selected radio)
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (adjust keys if needed, e.g., use 'amount' instead of 'price')
+        // Collect params for AJAX (refined for donations: use 'fixed_price' and custom attributes)
         const params = {
-            type: 'POST',  // For Fetch
-            product_id: productIdInput ? parseInt(productIdInput.value) : 0,  // Replace 0 with actual if not found
+            product_id: currentProductId,  // Key: Ensure this is correct!
             add_qty: 1,
-            price: amount.toFixed(2),  // Or use 'donation_amount': amount if that's the field
-            // Add more if needed, e.g., 'donation_amount': amount, or 'product_custom_attribute_values': JSON.stringify([{attribute_id: X, value: amount}])
+            fixed_price: amount.toFixed(2),  // Common for variable-price products like donations
+            product_custom_attribute_values: JSON.stringify([]),  // If custom attrs needed, e.g., [{attribute_value_id: X, custom_value: amount}]
+            // Alternative: If 'fixed_price' doesn't work, try 'price': amount or 'amount': amount
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
@@ -115,7 +118,7 @@ function initializeDonationLogic() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'  // For Odoo to recognize as AJAX
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify(params)
         })
@@ -124,17 +127,22 @@ function initializeDonationLogic() {
             return response.json();
         })
         .then(data => {
-            console.log("Step 18: AJAX success! Response:", data);
-            // Optional: Update mini-cart or redirect (e.g., window.location = '/shop/cart')
-            alert("Added to cart successfully! Check your cart.");  // Temporary feedback
+            console.log("Step 18: AJAX response:", data);
+            if (data.quantity > 0 || (data.cart_quantity && data.cart_quantity > 0)) {
+                alert("Added to cart successfully! Redirecting to cart...");
+                window.location.href = '/shop/cart';  // Auto-redirect to confirm
+            } else {
+                console.warn("Step 18: No items added (quantity: " + (data.quantity || 0) + "). Warning:", data.warning || "None");
+                alert("Item not added to cart. Check console for details: " + (data.warning || "Unknown issue"));
+            }
         })
         .catch(error => {
             console.error("Step 18: AJAX failed:", error);
-            alert("Error adding to cart: " + error.message);  // Temporary feedback
+            alert("Error adding to cart: " + error.message);
         });
     });
 
-    // Initial setup (toggle and set initial price based on checked radio)
+    // Initial setup
     toggleCustomField();
     const initialAmount = document.querySelector('input[name="donation_amount"]:checked')?.value;
     if (initialAmount && initialAmount !== 'custom') {
@@ -142,7 +150,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Manual AJAX handler added for Add to Cart)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Refined AJAX with response check)");
     return true;  // Success
 }
 
