@@ -1,5 +1,14 @@
-console.log("Touchtheos JS loaded! 🌊");
+//console.log("Touchtheos JS loaded! 🌊");
+console.log("Touchtheos JS loaded! 🌊 Step 1: Script started.");
 
+// Immediate logs to test basic execution
+console.log("Step 2: This should appear right after Step 1.");
+console.log("Step 3: If you see this, the file is parsing fully! 🎉");
+console.log("Step 4: Testing a basic variable:", 2 + 2);  // Should log 4
+
+// End of file
+console.log("Step 5: End of script reached. Success!");
+/* 
 function initializeDonationLogic() {
     console.log("Attempting to initialize donation logic...");
 
@@ -69,3 +78,4 @@ document.addEventListener('DOMContentLoaded', function () {
         if (initializeDonationLogic()) clearInterval(retryInterval);
     }, 500);
 });
+ */
