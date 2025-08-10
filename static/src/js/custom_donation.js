@@ -102,18 +102,28 @@ function initializeDonationLogic() {
         const selectedRadio = document.querySelector('input[name="donation_amount"]:checked');
         const amount = selectedRadio ? (selectedRadio.value === 'custom' ? parseFloat(customAmountInput.value) || 0 : parseFloat(selectedRadio.value) || 0) : 0;
 
-        // Collect params for AJAX (added 'amount' as fallback; send product_template_id if relevant)
+        // Collect params for AJAX
         const params = {
             product_id: currentProductId,  // Key: Ensure this is correct!
-            product_template_id: currentProductId,  // Fallback for some setups
+            product_template_id: currentProductId,  // Fallback
             add_qty: 1,
             fixed_price: amount.toFixed(2),  // For variable-price/donations
             price: amount.toFixed(2),  // Fallback
-            amount: amount.toFixed(2),  // Common for donation modules
+            amount: amount.toFixed(2),  // Common for donations
             product_custom_attribute_values: JSON.stringify([]),  // Add if needed
         };
 
         console.log("Step 17: Preparing manual AJAX to /shop/cart/update_json with params:", params);
+
+        // Wrap in JSON-RPC structure (required for Odoo JSON routes)
+        const rpcBody = {
+            jsonrpc: "2.0",
+            method: 'call',
+            params: params,
+            id: Math.floor(Math.random() * 1000000000)  // Random ID
+        };
+
+        console.log("Step 17a: Wrapped RPC body:", rpcBody);
 
         // Send manual AJAX request
         fetch('/shop/cart/update_json', {
@@ -122,7 +132,7 @@ function initializeDonationLogic() {
                 'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            body: JSON.stringify(params)
+            body: JSON.stringify(rpcBody)
         })
         .then(response => {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
@@ -142,12 +152,15 @@ function initializeDonationLogic() {
                 alert("Error from Odoo: " + (data.error.data?.message || data.error.message || "Unknown error") + ". Check console for full details.");
                 return;  // Stop here
             }
-            if (data.quantity > 0 || (data.cart_quantity && data.cart_quantity > 0)) {
+            // Success: Use data.result (the actual cart data)
+            const result = data.result || {};
+            console.log("Step 18: Result data:", result);
+            if (result.quantity > 0 || (result.cart_quantity && result.cart_quantity > 0)) {
                 alert("Added to cart successfully! Redirecting to cart...");
                 window.location.href = '/shop/cart';  // Auto-redirect to confirm
             } else {
-                console.warn("Step 18: No items added (quantity: " + (data.quantity || 0) + "). Warning:", data.warning || "None");
-                alert("Item not added to cart. Check console for details: " + (data.warning || "Unknown issue"));
+                console.warn("Step 18: No items added (quantity: " + (result.quantity || 0) + "). Warning:", result.warning || "None");
+                alert("Item not added to cart. Check console for details: " + (result.warning || "Unknown issue"));
             }
         })
         .catch(error => {
@@ -164,7 +177,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Deeper error logging added)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Added JSON-RPC wrapper for params)");
     return true;  // Success
 }
 
