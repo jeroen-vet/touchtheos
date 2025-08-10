@@ -17,6 +17,13 @@ function ready(fn) {
     console.log("Step 5: Ready handler set up. Waiting for DOM if needed.");
 }
 
+// Function to parse product ID from URL (e.g., '3' from '/shop/one-time-donation-3')
+function getProductIdFromUrl() {
+    const path = window.location.pathname;
+    const match = path.match(/\/shop\/.*-(\d+)$/);  // Looks for '-<number>' at end
+    return match ? parseInt(match[1]) : null;
+}
+
 // The full donation initialization logic
 function initializeDonationLogic() {
     console.log("Step 6: Attempting to initialize donation logic...");
@@ -26,7 +33,7 @@ function initializeDonationLogic() {
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
     const priceElement = document.querySelector('.oe_currency_value');  // Visible price display
-    const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input (might be gone now)
+    const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input (might be gone)
     const cartForm = document.querySelector('form[action="/shop/cart/update"]');  // Cart form (if present)
     const addToCartButton = document.querySelector('#add_to_cart');  // Matches your HTML
 
@@ -34,9 +41,10 @@ function initializeDonationLogic() {
     const productIdInput = document.querySelector('input[name="product_id"]') || 
                            document.querySelector('input[name="product_template_id"]') || 
                            document.querySelector('input[name="product_no_variant_attribute_value_ids"]');  // Fallbacks
-    const currentProductId = productIdInput ? parseInt(productIdInput.value) : 3;  // Default to 3; CHANGE TO YOUR ACTUAL (e.g., from URL)
+    let currentProductId = productIdInput ? parseInt(productIdInput.value) : getProductIdFromUrl() || 3;  // Use URL parse or default to 3
 
     // Debugging logs
+    console.log("URL-based product ID parse:", getProductIdFromUrl(), "(Full URL:", window.location.pathname, ")");
     console.log("Found donation options wrapper:", !!donationOptions);
     console.log("Found custom input:", !!customAmountInput, "(ID: #custom_amount)");
     console.log("Found radio inputs:", radioInputs.length);
@@ -181,18 +189,19 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Now only runs on product pages; relaxed hidden price input; added price_unit fallback)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Broader URL check for /shop/<slug>-<id>; URL-based ID parse)");
     return true;  // Success
 }
 
 // Run the logic when ready, with retries if needed—but only on product pages
 ready(function() {
-    // Check if on product page (e.g., URL contains '/shop/product/') to avoid running on cart, etc.
-    if (!window.location.pathname.includes('/shop/product/')) {
-        console.log("Step 6a: Not on a product page (URL: " + window.location.pathname + "). Skipping initialization to avoid errors on cart/etc.");
+    // Updated check: Run on /shop/ pages that aren't cart or categories
+    const path = window.location.pathname;
+    if (!path.startsWith('/shop/') || path === '/shop/cart' || path.startsWith('/shop/category/')) {
+        console.log("Step 6a: Not on a product detail page (URL: " + path + "). Skipping initialization to avoid errors on cart/category/etc.");
         return;  // Exit early
     }
-    console.log("Step 6a: On product page! Starting initialization.");
+    console.log("Step 6a: On product detail page! Starting initialization.");
 
     if (initializeDonationLogic()) return;  // Success on first try
 
