@@ -32,7 +32,7 @@ function initializeDonationLogic() {
     const donationOptions = document.querySelector('.donation-options');  // Optional wrapper
     const customAmountInput = document.querySelector('#custom_amount');
     const radioInputs = document.querySelectorAll('input[name="donation_amount"]');
-    const priceElement = document.querySelector('.oe_currency_value');  // Visible price display
+    const priceElements = document.querySelectorAll('.oe_currency_value');  // ALL visible price displays (in case multiple)
     const hiddenPriceInput = document.querySelector('input[name="price"]');  // Hidden input (might be gone)
     const cartForm = document.querySelector('form[action="/shop/cart/update"]');  // Cart form (if present)
     const addToCartButton = document.querySelector('#add_to_cart');  // Matches your HTML
@@ -51,14 +51,14 @@ function initializeDonationLogic() {
     radioInputs.forEach((radio, index) => {
         console.log(`Radio ${index}: value=${radio.value}, checked=${radio.checked}`);
     });
-    console.log("Found visible price element:", !!priceElement, "(Current text:", priceElement ? priceElement.textContent : "N/A)");
+    console.log("Found visible price elements:", priceElements.length, "(Texts:", Array.from(priceElements).map(el => el.textContent).join(", "), ")");
     console.log("Found hidden price input:", !!hiddenPriceInput, "(Current value:", hiddenPriceInput ? hiddenPriceInput.value : "N/A)", "(Selector used: 'input[name=\"price\"]')");
     console.log("Found cart form:", !!cartForm, "(Action:", cartForm ? cartForm.action : "N/A)");
     console.log("Found add to cart button:", !!addToCartButton, "(Text:", addToCartButton ? addToCartButton.textContent : "N/A)", "(Selector used: '#add_to_cart')");
     console.log("Found product ID input:", !!productIdInput, "(Value:", currentProductId, "(Name:", productIdInput ? productIdInput.name : "N/A) - If wrong, inspect URL or hidden input and update default in JS (line ~70)!)");
 
     // Condition: Require key elements (relaxed hiddenPriceInput since it might be gone)
-    if (radioInputs.length === 0 || !customAmountInput || !priceElement || !addToCartButton) {
+    if (radioInputs.length === 0 || !customAmountInput || priceElements.length === 0 || !addToCartButton) {
         console.warn("Step 7: Required elements not found yet. Will retry...");
         return false;  // Not ready; retry later
     }
@@ -74,14 +74,17 @@ function initializeDonationLogic() {
         console.log("Step 8: Toggled custom field. Visible:", selectedValue === 'custom', "(Selected:", selectedValue, ")");
     }
 
-    // Update price function (updates visible text; sync hidden if exists, triggers change)
+    // Update price function (updates ALL visible texts; sync hidden if exists, triggers change)
     function updatePrice(amount) {
-        priceElement.textContent = amount.toFixed(2);
+        const formattedAmount = amount.toFixed(2);
+        priceElements.forEach(el => {
+            el.textContent = formattedAmount;
+        });
         if (hiddenPriceInput) {
-            hiddenPriceInput.value = amount.toFixed(2);  // Sync if exists
+            hiddenPriceInput.value = formattedAmount;  // Sync if exists
             hiddenPriceInput.dispatchEvent(new Event('change'));
         }
-        console.log("Step 9: Price updated to:", amount.toFixed(2), "(Visible synced; hidden if present; change event triggered)");
+        console.log("Step 9: Price updated to:", formattedAmount, `(Synced ${priceElements.length} visible elements; hidden if present; change event triggered)`);
     }
 
     // Bind events to radios
@@ -166,9 +169,22 @@ function initializeDonationLogic() {
             // Success: Use data.result (the actual cart data)
             const result = data.result || {};
             console.log("Step 18: Result data:", result);
-            const addedPrice = result.amount || result.price || result.line_price || result.price_unit || "Unknown";  // Expanded to extract price
+
+            // Better extraction: Parse added line price from cart_lines HTML (look for monetary spans in the new line)
+            let addedPrice = "Unknown";
+            if (result['website_sale.cart_lines']) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(result['website_sale.cart_lines'], 'text/html');
+                const monetarySpans = doc.querySelectorAll('.monetary_field .oe_currency_value');
+                if (monetarySpans.length > 0) {
+                    // Assume last one is the new line's price (or refine based on structure)
+                    addedPrice = monetarySpans[monetarySpans.length - 1].textContent.trim();
+                }
+            }
+            addedPrice = addedPrice || result.amount || result.price || result.line_price || result.price_unit || "Unknown";
+
             if (result.quantity > 0 || (result.cart_quantity && result.cart_quantity > 0)) {
-                alert(`Added to cart successfully! Price used by Odoo: ${addedPrice} (if not your entered amount, check backend settings). Redirecting to cart...`);
+                alert(`Added to cart successfully! Price used by Odoo for new line: ${addedPrice} (if not your entered amount, check backend settings like base price/variants). Redirecting to cart...`);
                 window.location.href = '/shop/cart';  // Auto-redirect to confirm
             } else {
                 console.warn("Step 18: No items added (quantity: " + (result.quantity || 0) + "). Warning:", result.warning || "None");
@@ -189,7 +205,7 @@ function initializeDonationLogic() {
     } else if (initialAmount === 'custom') {
         updatePrice(parseFloat(customAmountInput.value) || 0);
     }
-    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Broader URL check for /shop/<slug>-<id>; URL-based ID parse)");
+    console.log("Step 12: Donation logic FULLY initialized! Events bound and ready. 🎉 (Updates ALL visible prices; better response price extraction from HTML)");
     return true;  // Success
 }
 
