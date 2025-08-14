@@ -1,12 +1,12 @@
 {
-    'name': 'Touchtheos Donation',  # Friendly name
+    'name': 'Touchtheos Donation',
     'version': '1.0',
     'category': 'Website',
     'summary': 'Custom donation options for website shop',
     'description': 'Adds dynamic donation amounts to specific products.',
-    'depends': ['website_sale'],  # Required for inheriting website_sale.product
+    'depends': ['website_sale'],
     'data': [
-        'views/product_template.xml',  # This is the key line! Registers your XML views
+        'views/product_template.xml',
     ],
     'installable': True,
     'auto_install': False,
