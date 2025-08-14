@@ -1,19 +1,20 @@
 {
-    'name': 'Touchtheos Custom Donation Module',  # Or whatever you have
+    'name': 'Touchtheos Donation Module',
     'version': '1.0',
     'category': 'Website',
     'summary': 'Add custom donation options to products',
-    'depends': ['website_sale'],  # Essential for inheriting website_sale views
+    'depends': ['website', 'website_sale'],  # Added 'website' for better frontend deps
     'data': [
         'views/product_template.xml',
     ],
     'assets': {
-        'web.assets_frontend': [  # This is the correct bundle for website JS
-            'touchtheos/static/src/js/donation.js',  # Exact path to your JS file
+        'website.assets_frontend': [  # Changed to website-specific bundle
+            '/touchtheos/static/src/js/donation.js',  # Added leading '/' for absolute path (Odoo convention)
         ],
     },
     'installable': True,
     'application': False,
 }
+
 
 
