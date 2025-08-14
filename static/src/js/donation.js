@@ -13,30 +13,30 @@ odoo.define('custom_donation.donation', function (require) {
         _onChangeAmount: function (ev) {
             var value = $(ev.currentTarget).val();
             var customField = $('#custom-amount-field');
-            var priceElement = $('.oe_currency_value');  // Odoo's price display element
+            var priceElement = $('.oe_currency_value');
 
             if (value === 'custom') {
                 customField.show();
-                var customVal = $('#custom_donation').val() || 100;
+                var customVal = parseFloat($('#custom_donation').val()) || 100;
                 this._updatePrice(customVal);
             } else {
                 customField.hide();
-                this._updatePrice(value);
+                this._updatePrice(parseFloat(value));
             }
         },
 
         _onCustomInput: function (ev) {
-            var value = $(ev.currentTarget).val();
-            if (value < 100) {
-                $(ev.currentTarget).val(100);  // Enforce min
+            var value = parseFloat($(ev.currentTarget).val());
+            if (isNaN(value) || value < 100) {
+                $(ev.currentTarget).val(100);
                 value = 100;
             }
             this._updatePrice(value);
         },
 
         _updatePrice: function (amount) {
-            $('.oe_currency_value').text(parseFloat(amount).toFixed(2));
-            // Also update the hidden input for cart submission if needed
+            if (isNaN(amount)) amount = 100;
+            $('.oe_currency_value').text(amount.toFixed(2));
             if (!$('#donation_amount_input').length) {
                 $('form[action="/shop/cart/update"]').append('<input type="hidden" id="donation_amount_input" name="donation_amount" />');
             }
@@ -46,3 +46,4 @@ odoo.define('custom_donation.donation', function (require) {
 
     return publicWidget.registry.DonationWidget;
 });
+
