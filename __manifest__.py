@@ -1,19 +1,15 @@
 {
-    'name': 'Touchtheos Donation Module',
+    'name': 'Test Assets Module',
     'version': '1.0',
-    'category': 'Website',
-    'summary': 'Add custom donation options to products',
-    'depends': ['website', 'website_sale'],  # Added 'website' for better frontend deps
-    'data': [
-        'views/product_template.xml',
-    ],
+    'category': 'Hidden',
+    'depends': ['website'],  # Minimal dep for frontend
     'assets': {
-        'website.assets_frontend': [  # Changed to website-specific bundle
-            '/touchtheos/static/src/js/donation.js',  # Added leading '/' for absolute path (Odoo convention)
+        'website.assets_frontend': [
+            '/test_assets/static/src/js/test.js',
         ],
     },
     'installable': True,
-    'application': False,
+    'auto_install': False,
 }
 
 
