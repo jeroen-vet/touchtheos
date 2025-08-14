@@ -1,4 +1,4 @@
-odoo.define('custom_donation.donation', function (require) {
+odoo.define('donation.donation', function (require) {
     'use strict';
 
     var publicWidget = require('web.public.widget');
