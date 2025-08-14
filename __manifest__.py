@@ -1,18 +1,19 @@
 {
-    'name': 'Touchtheos Custom Donation',
+    'name': 'Touchtheos Donation Module',
     'version': '1.0',
     'category': 'Website',
-    'summary': 'Custom JS for donation product page',
-    'description': 'Adds radio buttons, custom amount field, and JS logic for hiding/showing and price updates.',
-    'depends': ['website_sale'],  # Requires the eCommerce module
+    'summary': 'Custom donation options for one-time donations',
+    'description': 'Adds dynamic donation amounts to the one-time donation product.',
+    'depends': ['website_sale'],  # Depends on e-commerce module
     'data': [
         'views/product_template.xml',
     ],
     'assets': {
         'web.assets_frontend': [
-            '/touchtheos/static/src/js/custom_donation.js',
+            'touchtheos/static/src/js/donation.js',
         ],
     },
     'installable': True,
     'auto_install': False,
 }
+
