@@ -1,11 +1,101 @@
-<xpath expr="//form[@action='/shop/cart/update']" position="inside">
-    <div style="background-color: yellow; padding: 10px; font-weight: bold;">TEST: Donation Module is Loaded!</div>
-    <t t-if="product.name == 'One-Time Donation'">  <!-- Adjust to exact name, e.g., 'one-time-donation' if lowercase -->
-        <div class="donation-options mt-3" style="border: 2px solid green;">
-            <h5>Select Donation Amount (EUR)</h5>
-            <!-- Radio buttons and custom input here, same as before -->
-        </div>
-    </t>
-</xpath>
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="product_donation_options" inherit_id="website_sale.product" name="Donation Options">
+        <xpath expr="//form[@action='/shop/cart/update']" position="inside">
+            <!-- Unconditional TEST div -->
+            <div style="background-color: yellow; padding: 10px; font-weight: bold;">TEST: Donation Module is Loaded! (Inline JS Version - Unconditional)</div>
+            
+            <!-- Donation options: Temporarily unconditional for testing -->
+            <div class="donation-options mt-3" style="border: 2px solid green;">
+                <h5>Select Donation Amount (EUR) - TEST MODE (Visible on All Products)</h5>
+                <div class="form-check">
+                    <input type="radio" class="donation-radio form-check-input" name="donation_amount" value="100" checked="checked"/>
+                    <label class="form-check-label">€100</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="donation-radio form-check-input" name="donation_amount" value="200"/>
+                    <label class="form-check-label">€200</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="donation-radio form-check-input" name="donation_amount" value="500"/>
+                    <label class="form-check-label">€500</label>
+                </div>
+                <div class="form-check">
+                    <input type="radio" class="donation-radio form-check-input" name="donation_amount" value="custom"/>
+                    <label class="form-check-label">Custom Amount (min €100)</label>
+                </div>
+                <div id="custom-amount-field" style="display: none;" class="mt-2">
+                    <input type="number" id="custom_donation" class="form-control" min="100" value="100"/>
+                </div>
+            </div>
+
+            <!-- Inline JS with extra early logging -->
+            <script type="text/javascript">
+                console.log('TEST: Inline JS script tag is present in the page!');  // This logs as soon as the script loads, before DOM ready
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    console.log('TEST: DOM is ready - Inline JS is running!');
+
+                    var donationOptions = document.querySelector('.donation-options');
+                    if (!donationOptions) {
+                        console.log('TEST: No .donation-options found on this page');
+                        return;
+                    }
+
+                    var radios = donationOptions.querySelectorAll('.donation-radio');
+                    var customField = document.getElementById('custom-amount-field');
+                    var customInput = document.getElementById('custom_donation');
+                    var priceElement = document.querySelector('.oe_currency_value');
+
+                    radios.forEach(function (radio) {
+                        radio.addEventListener('change', function (ev) {
+                            console.log('TEST: Radio changed to ' + ev.target.value);
+                            var value = ev.target.value;
+                            if (value === 'custom') {
+                                customField.style.display = 'block';
+                                var customVal = parseFloat(customInput.value) || 100;
+                                updatePrice(customVal);
+                            } else {
+                                customField.style.display = 'none';
+                                updatePrice(parseFloat(value));
+                            }
+                        });
+                    });
+
+                    if (customInput) {
+                        customInput.addEventListener('input', function (ev) {
+                            var value = parseFloat(ev.target.value);
+                            if (isNaN(value) || value < 100) {
+                                ev.target.value = 100;
+                                value = 100;
+                            }
+                            console.log('TEST: Custom input changed to ' + value);
+                            updatePrice(value);
+                        });
+                    }
+
+                    function updatePrice(amount) {
+                        if (isNaN(amount)) amount = 100;
+                        if (priceElement) priceElement.textContent = amount.toFixed(2);
+                        var form = document.querySelector('form[action="/shop/cart/update"]');
+                        var hiddenInput = document.getElementById('donation_amount_input');
+                        if (!hiddenInput) {
+                            hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.id = 'donation_amount_input';
+                            hiddenInput.name = 'donation_amount';
+                            form.appendChild(hiddenInput);
+                        }
+                        hiddenInput.value = amount;
+                    }
+
+                    // Initial update
+                    updatePrice(100);
+                    console.log('TEST: Inline JS fully initialized');
+                });
+            </script>
+        </xpath>
+    </template>
+</odoo>
 
 
