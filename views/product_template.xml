@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <template id="product_donation_options" inherit_id="website_sale.product">
-        <xpath expr="//div[@id='product_detail']" position="inside">
+        <xpath expr="//div[@id='product_details']" position="inside">  <!-- Corrected XPath: added 's' to 'product_details' -->
             <t t-if="product.name == 'One-Time Donation'">
                 <div class="donation-options mt-3">
                     <h5>Select Donation Amount (EUR)</h5>
