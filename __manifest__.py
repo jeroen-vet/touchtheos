@@ -1,19 +1,19 @@
 {
-    'name': 'Touchtheos Donation Module',
+    'name': 'Touchtheos Custom Donation Module',  # Or whatever you have
     'version': '1.0',
     'category': 'Website',
-    'summary': 'Custom donation options for one-time donations',
-    'description': 'Adds dynamic donation amounts to the one-time donation product.',
-    'depends': ['website_sale'],  # Depends on e-commerce module
+    'summary': 'Add custom donation options to products',
+    'depends': ['website_sale'],  # Essential for inheriting website_sale views
     'data': [
         'views/product_template.xml',
     ],
     'assets': {
-        'web.assets_frontend': [
-            'touchtheos/static/src/js/donation.js',
+        'web.assets_frontend': [  # This is the correct bundle for website JS
+            'touchtheos/static/src/js/donation.js',  # Exact path to your JS file
         ],
     },
     'installable': True,
-    'auto_install': False,
+    'application': False,
 }
+
 

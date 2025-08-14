@@ -1,40 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <template id="product_donation_options" inherit_id="website_sale.product">
-        <xpath expr="//div[@id='product_details']" position="inside">  <!-- Corrected XPath: added 's' to 'product_details' -->
-            <t t-if="product.name == 'One-Time Donation'">
-                <div class="donation-options mt-3">
-                    <h5>Select Donation Amount (EUR)</h5>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="100" checked="checked" />
-                        <label class="form-check-label">100 (Minimum)</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="200" />
-                        <label class="form-check-label">200</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="300" />
-                        <label class="form-check-label">300</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="400" />
-                        <label class="form-check-label">400</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="500" />
-                        <label class="form-check-label">500</label>
-                    </div>
-                    <div class="form-check">
-                        <input type="radio" class="form-check-input donation-radio" name="donation_amount" value="custom" />
-                        <label class="form-check-label">Any Amount (min 100)</label>
-                    </div>
-                    <div id="custom-amount-field" style="display: none;" class="mt-2">
-                        <input type="number" id="custom_donation" class="form-control" placeholder="Enter amount >=100" min="100" step="1" />
-                    </div>
-                </div>
-            </t>
-        </xpath>
-    </template>
-</odoo>
+<xpath expr="//form[@action='/shop/cart/update']" position="inside">
+    <div style="background-color: yellow; padding: 10px; font-weight: bold;">TEST: Donation Module is Loaded!</div>
+    <t t-if="product.name == 'One-Time Donation'">  <!-- Adjust to exact name, e.g., 'one-time-donation' if lowercase -->
+        <div class="donation-options mt-3" style="border: 2px solid green;">
+            <h5>Select Donation Amount (EUR)</h5>
+            <!-- Radio buttons and custom input here, same as before -->
+        </div>
+    </t>
+</xpath>
+
 

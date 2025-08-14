@@ -1,7 +1,16 @@
-odoo.define('donation.donation', function (require) {
+odoo.define('touchtheos.donation', function (require) {
     'use strict';
 
+    console.log('TEST: Starting to load donation.js');  // Early log to confirm file is reached
+
     var publicWidget = require('web.public.widget');
+
+    if (!publicWidget) {
+        console.error('ERROR: web.public.widget not available! Check asset bundle.');
+        return;
+    }
+
+    console.log('TEST: web.public.widget loaded successfully!');
 
     publicWidget.registry.DonationWidget = publicWidget.Widget.extend({
         selector: '.donation-options',
@@ -10,7 +19,13 @@ odoo.define('donation.donation', function (require) {
             'input #custom_donation': '_onCustomInput',
         },
 
+        start: function () {
+            console.log('TEST: DonationWidget started!');
+            return this._super.apply(this, arguments);
+        },
+
         _onChangeAmount: function (ev) {
+            console.log('TEST: Radio changed to', $(ev.currentTarget).val());
             var value = $(ev.currentTarget).val();
             var customField = $('#custom-amount-field');
             var priceElement = $('.oe_currency_value');
@@ -31,6 +46,7 @@ odoo.define('donation.donation', function (require) {
                 $(ev.currentTarget).val(100);
                 value = 100;
             }
+            console.log('TEST: Custom input changed to', value);
             this._updatePrice(value);
         },
 
@@ -46,4 +62,5 @@ odoo.define('donation.donation', function (require) {
 
     return publicWidget.registry.DonationWidget;
 });
+
 
